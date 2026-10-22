@@ -1,0 +1,39 @@
+from flask import current_app, g
+import mysql.connector
+
+
+class MySQL:
+    """Flask-compatible connection wrapper using mysql-connector-python."""
+
+    _connection_key = "_votehub_mysql_connection"
+
+    def init_app(self, app):
+        app.teardown_appcontext(self._close_connection)
+
+    @property
+    def connection(self):
+        if self._connection_key not in g:
+            config = current_app.config
+            g[self._connection_key] = mysql.connector.connect(
+                host=config.get("MYSQL_HOST", "localhost"),
+                user=config.get("MYSQL_USER", "root"),
+                password=config.get("MYSQL_PASSWORD", ""),
+                database=config.get("MYSQL_DB", "votehub_db"),
+                autocommit=False,
+            )
+        return g[self._connection_key]
+
+    def _close_connection(self, exception=None):
+        connection = g.pop(self._connection_key, None)
+        if connection is not None:
+            try:
+                if exception is not None and connection.is_connected():
+                    connection.rollback()
+            finally:
+                connection.close()
+
+    def connect(self):
+        return self.connection
+
+
+mysql = MySQL()

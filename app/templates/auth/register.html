@@ -14,12 +14,24 @@
             </div>
         </div>
 
-        <form method="POST" class="premium-form">
+        <form method="POST" class="premium-form" id="registerForm" novalidate>
+<div class="form-group">
+    <label for="student_id">Student ID</label>
+    <input type="text"
+           name="student_id"
+           id="student_id"
+           placeholder="Enter your Student ID"
+           maxlength="30"
+           required>
+    <small class="field-error" id="student_idError"></small>
+</div>
+
             <div class="input-wrap">
                 <label>Full Name</label>
                 <div class="input-icon">
                     <i class="bi bi-person"></i>
-                    <input type="text" name="full_name" placeholder="Enter full name" required>
+                    <input type="text" name="full_name" id="full_name" placeholder="Enter full name" maxlength="100" required>
+                <small class="field-error" id="full_nameError" aria-live="polite"></small>
                 </div>
             </div>
 
@@ -27,7 +39,8 @@
                 <label>Email Address</label>
                 <div class="input-icon">
                     <i class="bi bi-envelope"></i>
-                    <input type="email" name="email" placeholder="Enter email address" required>
+                    <input type="email" name="email" id="email" placeholder="Enter email address" maxlength="254" required>
+                <small class="field-error" id="emailError" aria-live="polite"></small>
                 </div>
             </div>
 
@@ -35,7 +48,8 @@
                 <label>Phone Number</label>
                 <div class="input-icon">
                     <i class="bi bi-phone"></i>
-                    <input type="text" name="phone" placeholder="Enter phone number">
+                    <input type="tel" name="phone" id="phone" placeholder="Enter 10-digit mobile number" maxlength="10" minlength="10" pattern="[6-9][0-9]{9}" inputmode="numeric" required>
+                <small class="field-error" id="phoneError" aria-live="polite"></small>
                 </div>
             </div>
 
@@ -43,7 +57,8 @@
                 <label>Password</label>
                 <div class="input-icon">
                     <i class="bi bi-lock"></i>
-                    <input type="password" name="password" placeholder="Create password" required>
+                    <input type="password" name="password" id="password" placeholder="Create password" minlength="8" required>
+                <small class="field-error" id="passwordError" aria-live="polite"></small>
                 </div>
             </div>
 
@@ -51,7 +66,8 @@
                 <label>Confirm Password</label>
                 <div class="input-icon">
                     <i class="bi bi-shield-lock"></i>
-                    <input type="password" name="confirm_password" placeholder="Confirm password" required>
+                    <input type="password" name="confirm_password" id="confirm_password" placeholder="Confirm password" required>
+                <small class="field-error" id="confirm_passwordError" aria-live="polite"></small>
                 </div>
             </div>
 
@@ -67,5 +83,136 @@
         </p>
     </div>
 </section>
+<script id="registerInlineValidation">
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("registerForm");
+    if (!form) return;
+
+    const fields = {
+        student_id: document.getElementById("student_id"),
+        full_name: document.getElementById("full_name"),
+        email: document.getElementById("email"),
+        phone: document.getElementById("phone"),
+        password: document.getElementById("password"),
+        confirm_password: document.getElementById("confirm_password")
+    };
+
+    function showError(name, message) {
+        const field = fields[name];
+        const error = document.getElementById(name + "Error");
+        if (!field || !error) return;
+
+        error.textContent = message;
+        error.style.display = message ? "block" : "none";
+        error.style.color = "#dc2626";
+        error.style.fontSize = "0.85rem";
+        error.style.marginTop = "4px";
+        field.setAttribute("aria-invalid", message ? "true" : "false");
+    }
+
+    function validate(name) {
+        const field = fields[name];
+        if (!field) return true;
+
+        const value = field.value.trim();
+        let message = "";
+
+        if (name === "student_id") {
+            if (!value) message = "Student ID is required.";
+            else if (value.length > 30 || !/^[A-Za-z0-9_-]+$/.test(value))
+                message = "Use only letters, numbers, hyphens, or underscores.";
+        }
+
+        if (name === "full_name") {
+            if (!value) message = "Full name is required.";
+            else if (!/^[\p{L}\p{M}][\p{L}\p{M} .'-]{1,99}$/u.test(value))
+                message = "Enter a valid name using letters and spaces.";
+        }
+
+        if (name === "email") {
+            if (!value) message = "Email address is required.";
+            else if (value.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
+                message = "Enter a valid email address.";
+        }
+
+        if (name === "phone") {
+            if (!/^[6-9][0-9]{9}$/.test(value))
+                message = "Enter exactly 10 digits starting with 6, 7, 8, or 9.";
+        }
+
+        if (name === "password") {
+            if (!field.value) message = "Password is required.";
+            else if (field.value.length < 8)
+                message = "Password must contain at least 8 characters.";
+            else if (!/[A-Z]/.test(field.value) ||
+                     !/[a-z]/.test(field.value) ||
+                     !/[0-9]/.test(field.value))
+                message = "Include uppercase, lowercase, and a number.";
+        }
+
+        if (name === "confirm_password") {
+            if (!field.value) message = "Please confirm your password.";
+            else if (field.value !== fields.password.value)
+                message = "Passwords do not match.";
+        }
+
+        showError(name, message);
+        return !message;
+    }
+
+    Object.keys(fields).forEach(function (name) {
+        const field = fields[name];
+        if (!field) return;
+
+        field.addEventListener("input", function () {
+            validate(name);
+            if (name === "password" && fields.confirm_password.value)
+                validate("confirm_password");
+        });
+
+        field.addEventListener("blur", function () {
+            if (field.value.trim() || field.required) validate(name);
+        });
+    });
+
+    form.addEventListener("submit", function (event) {
+        let valid = true;
+        Object.keys(fields).forEach(function (name) {
+            if (!validate(name)) valid = false;
+        });
+
+        if (!valid) {
+            event.preventDefault();
+            const firstInvalid = form.querySelector('[aria-invalid="true"]');
+            if (firstInvalid) firstInvalid.focus();
+        }
+    });
+});
+</script>
+<script id="phoneDigitLimit">
+document.addEventListener("DOMContentLoaded", function () {
+    const phone = document.getElementById("phone");
+    if (!phone) return;
+
+    phone.addEventListener("input", function () {
+        this.value = this.value.replace(/\D/g, "").slice(0, 10);
+        this.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    phone.addEventListener("paste", function (event) {
+        event.preventDefault();
+        const pasted = (event.clipboardData || window.clipboardData)
+            .getData("text").replace(/\D/g, "").slice(0, 10);
+        this.value = pasted;
+        this.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+});
+</script>
 {% endblock %}
+
+
+
+
+
+
 

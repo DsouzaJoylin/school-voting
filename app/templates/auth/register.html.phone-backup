@@ -1,0 +1,196 @@
+﻿{% extends 'base.html' %}
+
+{% block content %}
+<section class="auth-screen">
+    <div class="auth-bg-orb one"></div>
+    <div class="auth-bg-orb two"></div>
+
+    <div class="auth-panel register-panel">
+        <div class="auth-logo">
+            <span class="logo-orb">VH</span>
+            <div>
+                <h3>Create Voter Account</h3>
+                <p>Register to participate in secure elections</p>
+            </div>
+        </div>
+
+        <form method="POST" class="premium-form" id="registerForm" novalidate>
+<div class="form-group">
+    <label for="student_id">Student ID</label>
+    <input type="text"
+           name="student_id"
+           id="student_id"
+           placeholder="Enter your Student ID"
+           maxlength="30"
+           required>
+    <small class="field-error" id="student_idError"></small>
+</div>
+
+            <div class="input-wrap">
+                <label>Full Name</label>
+                <div class="input-icon">
+                    <i class="bi bi-person"></i>
+                    <input type="text" name="full_name" id="full_name" placeholder="Enter full name" maxlength="100" required>
+                <small class="field-error" id="full_nameError" aria-live="polite"></small>
+                </div>
+            </div>
+
+            <div class="input-wrap">
+                <label>Email Address</label>
+                <div class="input-icon">
+                    <i class="bi bi-envelope"></i>
+                    <input type="email" name="email" id="email" placeholder="Enter email address" maxlength="254" required>
+                <small class="field-error" id="emailError" aria-live="polite"></small>
+                </div>
+            </div>
+
+            <div class="input-wrap">
+                <label>Phone Number</label>
+                <div class="input-icon">
+                    <i class="bi bi-phone"></i>
+                    <input type="text" name="phone" id="phone" placeholder="Enter phone number" maxlength="20">
+                <small class="field-error" id="phoneError" aria-live="polite"></small>
+                </div>
+            </div>
+
+            <div class="input-wrap">
+                <label>Password</label>
+                <div class="input-icon">
+                    <i class="bi bi-lock"></i>
+                    <input type="password" name="password" id="password" placeholder="Create password" minlength="8" required>
+                <small class="field-error" id="passwordError" aria-live="polite"></small>
+                </div>
+            </div>
+
+            <div class="input-wrap">
+                <label>Confirm Password</label>
+                <div class="input-icon">
+                    <i class="bi bi-shield-lock"></i>
+                    <input type="password" name="confirm_password" id="confirm_password" placeholder="Confirm password" required>
+                <small class="field-error" id="confirm_passwordError" aria-live="polite"></small>
+                </div>
+            </div>
+
+            <button type="submit" class="auth-submit">
+                Create Account
+                <i class="bi bi-arrow-right"></i>
+            </button>
+        </form>
+
+        <p class="auth-switch">
+            Already registered?
+            <a href="{{ url_for('auth.login') }}">Login here</a>
+        </p>
+    </div>
+</section>
+<script id="registerInlineValidation">
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("registerForm");
+    if (!form) return;
+
+    const fields = {
+        student_id: document.getElementById("student_id"),
+        full_name: document.getElementById("full_name"),
+        email: document.getElementById("email"),
+        phone: document.getElementById("phone"),
+        password: document.getElementById("password"),
+        confirm_password: document.getElementById("confirm_password")
+    };
+
+    function showError(name, message) {
+        const field = fields[name];
+        const error = document.getElementById(name + "Error");
+        if (!field || !error) return;
+
+        error.textContent = message;
+        error.style.display = message ? "block" : "none";
+        error.style.color = "#dc2626";
+        error.style.fontSize = "0.85rem";
+        error.style.marginTop = "4px";
+        field.setAttribute("aria-invalid", message ? "true" : "false");
+    }
+
+    function validate(name) {
+        const field = fields[name];
+        if (!field) return true;
+
+        const value = field.value.trim();
+        let message = "";
+
+        if (name === "student_id") {
+            if (!value) message = "Student ID is required.";
+            else if (value.length > 30 || !/^[A-Za-z0-9_-]+$/.test(value))
+                message = "Use only letters, numbers, hyphens, or underscores.";
+        }
+
+        if (name === "full_name") {
+            if (!value) message = "Full name is required.";
+            else if (!/^[\p{L}\p{M}][\p{L}\p{M} .'-]{1,99}$/u.test(value))
+                message = "Enter a valid name using letters and spaces.";
+        }
+
+        if (name === "email") {
+            if (!value) message = "Email address is required.";
+            else if (value.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
+                message = "Enter a valid email address.";
+        }
+
+        if (name === "phone" && value) {
+            const digits = value.replace(/\D/g, "");
+            if (!/^[0-9+().\-\s]+$/.test(value) || digits.length < 10 || digits.length > 15)
+                message = "Enter a valid phone number (10–15 digits).";
+        }
+
+        if (name === "password") {
+            if (!field.value) message = "Password is required.";
+            else if (field.value.length < 8)
+                message = "Password must contain at least 8 characters.";
+            else if (!/[A-Z]/.test(field.value) ||
+                     !/[a-z]/.test(field.value) ||
+                     !/[0-9]/.test(field.value))
+                message = "Include uppercase, lowercase, and a number.";
+        }
+
+        if (name === "confirm_password") {
+            if (!field.value) message = "Please confirm your password.";
+            else if (field.value !== fields.password.value)
+                message = "Passwords do not match.";
+        }
+
+        showError(name, message);
+        return !message;
+    }
+
+    Object.keys(fields).forEach(function (name) {
+        const field = fields[name];
+        if (!field) return;
+
+        field.addEventListener("input", function () {
+            validate(name);
+            if (name === "password" && fields.confirm_password.value)
+                validate("confirm_password");
+        });
+
+        field.addEventListener("blur", function () {
+            if (field.value.trim() || field.required) validate(name);
+        });
+    });
+
+    form.addEventListener("submit", function (event) {
+        let valid = true;
+        Object.keys(fields).forEach(function (name) {
+            if (!validate(name)) valid = false;
+        });
+
+        if (!valid) {
+            event.preventDefault();
+            const firstInvalid = form.querySelector('[aria-invalid="true"]');
+            if (firstInvalid) firstInvalid.focus();
+        }
+    });
+});
+</script>
+{% endblock %}
+
+
+

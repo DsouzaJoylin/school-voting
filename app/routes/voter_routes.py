@@ -1,4 +1,4 @@
-﻿from flask import (
+from flask import (
     Blueprint,
     render_template,
     session,
@@ -53,6 +53,9 @@ def dashboard():
         FROM elections e
         LEFT JOIN election_candidates ec
             ON e.election_id = ec.election_id
+           AND ec.candidate_id IN (
+               SELECT candidate_id FROM candidates WHERE is_deleted=0
+           )
         WHERE e.status='active'
           AND e.start_datetime <= NOW()
           AND e.end_datetime > NOW()
@@ -203,6 +206,52 @@ def profile():
                 "danger"
             )
 
+            return redirect(url_for("voter.profile"))
+
+        # Server-side voter profile validation
+        import re
+        from datetime import date
+
+        id_number = id_number.strip()
+        address = address.strip()
+
+        allowed_genders = {"Male", "Female", "Other"}
+        allowed_id_types = {"College ID", "Employee ID", "Government ID"}
+
+        error = None
+
+        if gender not in allowed_genders:
+            error = "Please select a valid gender."
+        elif id_type not in allowed_id_types:
+            error = "Please select a valid ID type."
+        elif len(address) < 5 or len(address) > 500:
+            error = "Address must be between 5 and 500 characters."
+        elif not re.fullmatch(r"[A-Za-z0-9/-]{5,30}", id_number):
+            error = "ID number must be 5?30 characters using letters, numbers, hyphens or slashes."
+        elif not id_number.strip("0-/"):
+            error = "ID number cannot consist only of zeros."
+        elif id_type == "College ID" and (
+            not re.search(r"[A-Za-z]", id_number)
+            or not re.search(r"[0-9]", id_number)
+        ):
+            error = "College ID must contain both letters and numbers, for example MCA24A001."
+        else:
+            try:
+                birth_date = date.fromisoformat(date_of_birth)
+                today = date.today()
+                age = today.year - birth_date.year - (
+                    (today.month, today.day) < (birth_date.month, birth_date.day)
+                )
+                if birth_date >= today:
+                    error = "Date of birth must be earlier than today."
+                elif age < 10:
+                    error = "Voters must be at least 10 years old."
+            except (ValueError, TypeError):
+                error = "Please enter a valid date of birth."
+
+        if error:
+            cur.close()
+            flash(error, "danger")
             return redirect(url_for("voter.profile"))
 
         if voter:

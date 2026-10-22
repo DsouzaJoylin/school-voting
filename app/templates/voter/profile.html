@@ -11,7 +11,7 @@
     </div>
 
     <div class="card shadow-sm p-4">
-        <form method="POST">
+        <form method="POST" id="voterProfileForm">
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label">Full Name</label>
@@ -40,7 +40,7 @@
 
                 <div class="col-md-6">
                     <label class="form-label">ID Type</label>
-                    <select name="id_type" class="form-control" required>
+                    <select name="id_type" id="id_type" class="form-control" required>
                         <option value="">Select ID Type</option>
                         <option value="College ID" {% if voter and voter.id_type == 'College ID' %}selected{% endif %}>College ID</option>
                         <option value="Employee ID" {% if voter and voter.id_type == 'Employee ID' %}selected{% endif %}>Employee ID</option>
@@ -50,7 +50,7 @@
 
                 <div class="col-md-6">
                     <label class="form-label">ID Number</label>
-                    <input type="text" name="id_number" value="{{ voter.id_number if voter else '' }}" class="form-control" required>
+                    <input type="text" name="id_number" id="id_number" value="{{ voter.id_number if voter else '' }}" class="form-control" minlength="5" maxlength="30" pattern="[A-Za-z0-9/-]{5,30}" title="Enter 5?30 letters, numbers, hyphens or slashes. College IDs must contain letters and numbers." required>
                 </div>
 
                 <div class="col-md-12">
@@ -65,4 +65,50 @@
         </form>
     </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("voterProfileForm");
+    const dob = form.querySelector('[name="date_of_birth"]');
+    const gender = form.querySelector('[name="gender"]');
+    const idType = document.getElementById("id_type");
+    const idNumber = document.getElementById("id_number");
+    const address = form.querySelector('[name="address"]');
+
+    dob.max = new Date().toISOString().slice(0, 10);
+
+    function validateId() {
+        const value = idNumber.value.trim();
+        const validCharacters = /^[A-Za-z0-9/-]{5,30}$/.test(value);
+        const notZeros = value.replace(/[/-]/g, "").replace(/0/g, "") !== "";
+        const collegeFormat = /[A-Za-z]/.test(value) && /[0-9]/.test(value);
+
+        if (!validCharacters || !notZeros ||
+            (idType.value === "College ID" && !collegeFormat)) {
+            idNumber.setCustomValidity(
+                idType.value === "College ID"
+                    ? "Enter a valid College ID containing letters and numbers, e.g. MCA24A001. All-zero IDs are not allowed."
+                    : "Enter a valid ID of 5?30 letters, numbers, hyphens or slashes. All-zero IDs are not allowed."
+            );
+        } else {
+            idNumber.setCustomValidity("");
+        }
+    }
+
+    idType.addEventListener("change", validateId);
+    idNumber.addEventListener("input", validateId);
+
+    form.addEventListener("submit", function (event) {
+        validateId();
+        address.value = address.value.trim();
+
+        if (!gender.value || address.value.length < 5 ||
+            address.value.length > 500 || !form.checkValidity()) {
+            event.preventDefault();
+            form.reportValidity();
+        }
+    });
+});
+</script>
+
 {% endblock %}

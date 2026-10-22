@@ -1,0 +1,71 @@
+﻿{% extends 'base.html' %}
+
+{% block content %}
+<section class="auth-screen">
+    <div class="auth-bg-orb one"></div>
+    <div class="auth-bg-orb two"></div>
+
+    <div class="auth-panel register-panel">
+        <div class="auth-logo">
+            <span class="logo-orb">VH</span>
+            <div>
+                <h3>Create Voter Account</h3>
+                <p>Register to participate in secure elections</p>
+            </div>
+        </div>
+
+        <form method="POST" class="premium-form">
+            <div class="input-wrap">
+                <label>Full Name</label>
+                <div class="input-icon">
+                    <i class="bi bi-person"></i>
+                    <input type="text" name="full_name" placeholder="Enter full name" required>
+                </div>
+            </div>
+
+            <div class="input-wrap">
+                <label>Email Address</label>
+                <div class="input-icon">
+                    <i class="bi bi-envelope"></i>
+                    <input type="email" name="email" placeholder="Enter email address" required>
+                </div>
+            </div>
+
+            <div class="input-wrap">
+                <label>Phone Number</label>
+                <div class="input-icon">
+                    <i class="bi bi-phone"></i>
+                    <input type="text" name="phone" placeholder="Enter phone number">
+                </div>
+            </div>
+
+            <div class="input-wrap">
+                <label>Password</label>
+                <div class="input-icon">
+                    <i class="bi bi-lock"></i>
+                    <input type="password" name="password" placeholder="Create password" required>
+                </div>
+            </div>
+
+            <div class="input-wrap">
+                <label>Confirm Password</label>
+                <div class="input-icon">
+                    <i class="bi bi-shield-lock"></i>
+                    <input type="password" name="confirm_password" placeholder="Confirm password" required>
+                </div>
+            </div>
+
+            <button type="submit" class="auth-submit">
+                Create Account
+                <i class="bi bi-arrow-right"></i>
+            </button>
+        </form>
+
+        <p class="auth-switch">
+            Already registered?
+            <a href="{{ url_for('auth.login') }}">Login here</a>
+        </p>
+    </div>
+</section>
+{% endblock %}
+

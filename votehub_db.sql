@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jun 28, 2026 at 08:01 PM
+-- Generation Time: Jul 27, 2026 at 07:00 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -58,9 +58,11 @@ CREATE TABLE `candidates` (
 --
 
 INSERT INTO `candidates` (`candidate_id`, `full_name`, `party_name`, `symbol`, `photo`, `manifesto_file`, `description`, `created_at`) VALUES
-(1, 'Rahul Sharma', 'Student Unity Party', NULL, NULL, NULL, 'Focused on student welfare and campus development.', '2026-06-28 15:49:21'),
-(2, 'Aisha Khan', 'Youth Progress Party', NULL, NULL, NULL, 'Focused on academic support and student activities.', '2026-06-28 15:49:21'),
-(3, 'Neha Verma', 'Future Leaders Party', NULL, NULL, NULL, 'Focused on innovation and digital campus initiatives.', '2026-06-28 15:49:21');
+(1, 'Rithesh dsouza', 'SPL', '2858a937_pen.jpg', '2f4213f7_rithesh.jpg', NULL, 'An enthusiastic and responsible student who is contesting for the Special Role with the goal of supporting fellow students, organizing activities, addressing concerns, and contributing to a positive and inclusive environment.', '2026-06-29 05:49:47'),
+(2, 'Priya', 'Asst SPL', 'da930612_flower.jpeg', '3676b04b_priya.jpg', NULL, '', '2026-07-02 04:52:39'),
+(3, 'Jeevan', 'SPL', 'f0fb1cac_pencil.jpg', 'a7a92500_jeevan.jpg', NULL, '', '2026-07-02 04:53:29'),
+(4, 'Joy', 'Asst SPL', 'e68445b4_book.jpg', '16ee7129_joy.jpg', NULL, '', '2026-07-02 04:54:11'),
+(5, 'resvina', 'discipline ', '47f922ed_pen.jpg', '72baaaa8_sister.jpeg', NULL, 'please vote me', '2026-07-23 05:35:44');
 
 -- --------------------------------------------------------
 
@@ -85,7 +87,9 @@ CREATE TABLE `elections` (
 --
 
 INSERT INTO `elections` (`election_id`, `title`, `description`, `start_datetime`, `end_datetime`, `status`, `result_published`, `created_by`, `created_at`) VALUES
-(1, 'Student Council Election 2026', 'Election for selecting student council representatives.', '2026-07-01 09:00:00', '2026-07-01 17:00:00', 'active', 0, 1, '2026-06-28 15:49:21');
+(2, 'splL election', 'u can vote only during election', '2026-07-02 10:28:00', '2026-07-02 23:59:00', 'completed', 1, NULL, '2026-07-02 04:58:59'),
+(3, 'asst spl', 'vote for the election of asst role', '2026-07-02 10:59:00', '2026-07-02 12:00:00', 'completed', 1, NULL, '2026-07-02 05:30:29'),
+(4, 'discipline  leader', '', '2026-07-23 10:59:00', '2026-07-24 11:00:00', 'active', 0, NULL, '2026-07-23 05:29:53');
 
 -- --------------------------------------------------------
 
@@ -104,9 +108,11 @@ CREATE TABLE `election_candidates` (
 --
 
 INSERT INTO `election_candidates` (`id`, `election_id`, `candidate_id`) VALUES
-(1, 1, 1),
-(2, 1, 2),
-(3, 1, 3);
+(3, 2, 1),
+(2, 2, 3),
+(8, 3, 2),
+(9, 3, 4),
+(10, 4, 5);
 
 -- --------------------------------------------------------
 
@@ -158,15 +164,11 @@ CREATE TABLE `otp_verifications` (
 --
 
 INSERT INTO `otp_verifications` (`otp_id`, `email`, `otp_code`, `purpose`, `is_used`, `expires_at`, `created_at`) VALUES
-(1, 'aiman@gmail.com', '468664', 'register', 1, '2026-06-28 22:06:33', '2026-06-28 16:26:33'),
-(2, 'aiman@gmail.com', '235698', 'register', 1, '2026-06-28 22:06:53', '2026-06-28 16:26:53'),
-(3, 'aiman@gmail.com', '905439', 'register', 0, '2026-06-28 22:08:03', '2026-06-28 16:28:03'),
-(4, 'mohammedarhan17@gmail.com', '195274', 'register', 1, '2026-06-28 22:09:49', '2026-06-28 16:29:49'),
-(5, 'mohammedarhan17@gmail.com', '626205', 'register', 1, '2026-06-28 23:09:33', '2026-06-28 17:29:33'),
-(6, 'arhanyay@gmail.com', '493563', 'register', 0, '2026-06-28 23:12:13', '2026-06-28 17:32:13'),
-(7, 'muhammadarhan63@gmail.com', '155189', 'register', 1, '2026-06-28 23:23:41', '2026-06-28 17:43:41'),
-(8, 'mohammedarhan17@gmail.com', '646302', 'register', 1, '2026-06-28 23:24:27', '2026-06-28 17:44:27'),
-(9, 'mohammedarhan17@gmail.com', '456335', 'register', 0, '2026-06-28 23:24:29', '2026-06-28 17:44:29');
+(1, 'dsouzajoylin21@gmail.com', '321278', 'register', 1, '2026-06-29 10:39:32', '2026-06-29 04:59:32'),
+(2, 'admin@gmail.com', '195238', 'register', 0, '2026-06-29 10:48:17', '2026-06-29 05:08:17'),
+(3, 'votehub21@gmail.com', '118409', 'register', 1, '2026-06-29 11:20:43', '2026-06-29 05:40:43'),
+(4, 'votehub21@gmail.com', '784382', 'register', 1, '2026-07-02 10:16:39', '2026-07-02 04:36:39'),
+(5, 'joylinjoyce21@gmail.com', '397191', 'register', 1, '2026-07-23 10:48:52', '2026-07-23 05:08:52');
 
 -- --------------------------------------------------------
 
@@ -209,15 +211,6 @@ CREATE TABLE `settings` (
   `setting_value` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `settings`
---
-
-INSERT INTO `settings` (`setting_id`, `setting_key`, `setting_value`) VALUES
-(1, 'app_name', 'VoteHub'),
-(2, 'project_title', 'A Secure Online Voting & Election Management System'),
-(3, 'result_visibility', 'admin_only');
-
 -- --------------------------------------------------------
 
 --
@@ -241,10 +234,8 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`user_id`, `full_name`, `email`, `phone`, `password_hash`, `role`, `status`, `email_verified`, `created_at`) VALUES
-(1, 'System Admin', 'admin@votehub.com', '9999999999', '$2b$12$A2DWu136soMcj3jXcs/87ukUOMK3eynXwH5Wkj1QYRfHSwIcf5Aeq', 'admin', 'active', 1, '2026-06-28 15:49:21'),
-(6, 'Arhan', 'mohammedarhan17@gmail.com', '7892941293', '$2b$12$mftPbds9pBBONVnX269lhORQCqDOL.phWpm0z/I9CYtntx0KDBSwO', 'voter', 'pending', 0, '2026-06-28 17:29:33'),
-(7, 'arhan', 'arhanyay@gmail.com', '7892941294', '$2b$12$qLk5qKrkWECmoq2jfvKl5.JfKb3EVRkopaOzNOt8D3PPB3qsCTfzK', 'voter', 'pending', 0, '2026-06-28 17:32:13'),
-(8, 'mohammed', 'muhammadarhan63@gmail.com', '7892941294', '$2b$12$Dq/559.jZ5sHbRlmITOMdO/dg3pmOGjELhcTtTzifnOzo9wtJ8Lxq', 'voter', 'active', 1, '2026-06-28 17:43:41');
+(4, 'admin', 'votehub21@gmail.com', '8867663354', '$2b$12$35mSbeT80QDhYoSb6FDBzOMZMnolnMyTzzLLk8Lu9YXeoCPMymqlm', 'admin', 'active', 1, '2026-07-02 04:36:39'),
+(5, 'joylin dsouza', 'joylinjoyce21@gmail.com', '8867663354', '$2b$12$s9/b4mRNnpjTgH9ilwHp3./Hgh0cICC6PFqrBo.pmXVIUkfQTVALO', 'voter', 'active', 1, '2026-07-23 05:08:52');
 
 -- --------------------------------------------------------
 
@@ -267,6 +258,14 @@ CREATE TABLE `voters` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `voters`
+--
+
+INSERT INTO `voters` (`voter_id`, `user_id`, `voter_uid`, `date_of_birth`, `gender`, `address`, `id_type`, `id_number`, `id_document`, `profile_photo`, `verification_status`, `created_at`) VALUES
+(3, 4, 'VH-VOTER-00004', '1996-01-21', 'Female', 'mangalore', 'College ID', 'poza123453', NULL, NULL, 'pending', '2026-07-02 04:38:55'),
+(4, 5, 'VH-VOTER-00005', '2000-01-21', 'Female', 'mangalore', 'College ID', 'po5z123422', NULL, NULL, 'approved', '2026-07-23 05:12:26');
+
 -- --------------------------------------------------------
 
 --
@@ -282,6 +281,15 @@ CREATE TABLE `votes` (
   `voted_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `votes`
+--
+
+INSERT INTO `votes` (`vote_id`, `election_id`, `voter_id`, `candidate_id`, `vote_hash`, `voted_at`) VALUES
+(4, 3, 4, 4, 'e4975f098c650f9727d97291f71943d5d05853a7d4c043ecbde72d2318829eba', '2026-07-23 05:15:18'),
+(5, 2, 4, 3, '8f4b71cfe8b05146bc13a8e7271ebf09a559fb88abdb60b901016a783c9558ff', '2026-07-23 05:16:25'),
+(6, 4, 4, 5, 'd7f5ef7ea3b5db98f948a5c18088201ad36f6b53e579ab9d1e8cd9436402b98c', '2026-07-23 05:46:12');
+
 -- --------------------------------------------------------
 
 --
@@ -294,6 +302,15 @@ CREATE TABLE `vote_receipts` (
   `receipt_code` varchar(100) DEFAULT NULL,
   `generated_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `vote_receipts`
+--
+
+INSERT INTO `vote_receipts` (`receipt_id`, `vote_id`, `receipt_code`, `generated_at`) VALUES
+(4, 4, 'VH-RCPT-67E24425', '2026-07-23 05:15:18'),
+(5, 5, 'VH-RCPT-1FAE95EC', '2026-07-23 05:16:25'),
+(6, 6, 'VH-RCPT-D79AC93F', '2026-07-23 05:46:12');
 
 --
 -- Indexes for dumped tables
@@ -414,19 +431,19 @@ ALTER TABLE `audit_logs`
 -- AUTO_INCREMENT for table `candidates`
 --
 ALTER TABLE `candidates`
-  MODIFY `candidate_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `candidate_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `elections`
 --
 ALTER TABLE `elections`
-  MODIFY `election_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `election_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `election_candidates`
 --
 ALTER TABLE `election_candidates`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `login_attempts`
@@ -444,7 +461,7 @@ ALTER TABLE `notifications`
 -- AUTO_INCREMENT for table `otp_verifications`
 --
 ALTER TABLE `otp_verifications`
-  MODIFY `otp_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `otp_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `password_resets`
@@ -462,31 +479,31 @@ ALTER TABLE `results`
 -- AUTO_INCREMENT for table `settings`
 --
 ALTER TABLE `settings`
-  MODIFY `setting_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `setting_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `voters`
 --
 ALTER TABLE `voters`
-  MODIFY `voter_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `voter_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `votes`
 --
 ALTER TABLE `votes`
-  MODIFY `vote_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `vote_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `vote_receipts`
 --
 ALTER TABLE `vote_receipts`
-  MODIFY `receipt_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `receipt_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- Constraints for dumped tables

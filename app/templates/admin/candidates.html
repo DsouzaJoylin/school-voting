@@ -5,6 +5,9 @@
     <div>
         <h2>Candidate Management</h2>
         <p>Add, edit, upload candidate photo, party symbol, and manifesto PDF.</p>
+        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('candidate.deleted_candidates') }}">
+            <i class="bi bi-archive"></i> Deleted Candidates
+        </a>
     </div>
 </div>
 
@@ -20,22 +23,22 @@
 
             <div class="col-md-4">
                 <label class="form-label">Party Name</label>
-                <input type="text" name="party_name" class="form-control">
+                <input type="text" name="party_name" class="form-control" required maxlength="100">
             </div>
 
             <div class="col-md-4">
                 <label class="form-label">Candidate Photo</label>
-                <input type="file" name="photo" class="form-control" accept="image/*">
+                <input type="file" name="photo" class="form-control" accept=".jpg,.jpeg,.png,.webp" required>
             </div>
 
             <div class="col-md-4">
                 <label class="form-label">Party Symbol</label>
-                <input type="file" name="symbol" class="form-control" accept="image/*">
+                <input type="file" name="symbol" class="form-control" accept=".jpg,.jpeg,.png,.webp" required>
             </div>
 
             <div class="col-md-4">
                 <label class="form-label">Manifesto PDF</label>
-                <input type="file" name="manifesto_file" class="form-control" accept="application/pdf">
+                <input type="file" name="manifesto_file" class="form-control" accept=".pdf,application/pdf" required>
             </div>
 
             <div class="col-md-4 d-flex align-items-end">
@@ -83,11 +86,10 @@
                         Edit Candidate
                     </button>
 
-                    <a href="{{ url_for('candidate.delete_candidate', candidate_id=candidate.candidate_id) }}"
-                       class="btn btn-sm btn-danger w-100"
-                       onclick="return confirm('Delete this candidate?')">
-                       Delete
-                    </a>
+                    <form method="POST" action="{{ url_for('candidate.delete_candidate', candidate_id=candidate.candidate_id) }}"
+                          onsubmit="return confirm('Move this candidate to Deleted Candidates?');">
+                        <button type="submit" class="btn btn-sm btn-danger w-100">Move to Deleted</button>
+                    </form>
                 </div>
             </div>
         </div>

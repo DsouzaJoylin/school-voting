@@ -1,0 +1,456 @@
+from flask import Blueprint, render_template, request, redirect, url_for, flash
+from app.extensions import mysql
+from app.utils.decorators import admin_required
+from werkzeug.utils import secure_filename
+import os
+import uuid
+import hashlib
+
+candidate_bp = Blueprint("candidate", __name__, url_prefix="/admin/candidates")
+
+PHOTO_FOLDER = "app/static/images/candidates"
+MANIFESTO_FOLDER = "app/static/uploads/manifestos"
+
+ALLOWED_IMAGE = {"png", "jpg", "jpeg", "webp"}
+ALLOWED_PDF = {"pdf"}
+
+def allowed_file(filename, allowed):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in allowed
+
+def validate_candidate_fields(full_name, party_name, description):
+    full_name = (full_name or "").strip()
+    party_name = (party_name or "").strip()
+    description = (description or "").strip()
+
+    if not full_name:
+        return None, "Candidate name is required."
+    if len(full_name) > 100:
+        return None, "Candidate name must not exceed 100 characters."
+    if not any(ch.isalpha() for ch in full_name):
+        return None, "Enter a valid candidate name."
+    if any(not (ch.isalpha() or ch in " .'-") for ch in full_name):
+        return None, "Candidate name contains invalid characters."
+    if len(party_name) > 100:
+        return None, "Party name must not exceed 100 characters."
+    if any(ord(ch) < 32 for ch in party_name):
+        return None, "Party name contains invalid characters."
+    if len(description) > 2000:
+        return None, "Description must not exceed 2000 characters."
+
+    return (full_name, party_name or None, description or None), None
+
+
+def validate_upload_content(file, allowed, label, max_bytes):
+    if not file or not file.filename:
+        return None
+
+    if not allowed_file(file.filename, allowed):
+        return f"{label} has an unsupported file extension."
+
+    try:
+        file.stream.seek(0, 2)
+        size = file.stream.tell()
+        file.stream.seek(0)
+        header = file.stream.read(12)
+        file.stream.seek(0)
+    except (OSError, AttributeError):
+        return f"Could not read the uploaded {label.lower()}."
+
+    if size > max_bytes:
+        return f"{label} exceeds the maximum allowed size of {max_bytes // (1024 * 1024)} MB."
+
+    extension = file.filename.rsplit(".", 1)[1].lower()
+
+    if extension in {"jpg", "jpeg"} and not header.startswith(b"\\xff\\xd8\\xff"):
+        return f"{label} is not a valid JPEG image."
+    if extension == "png" and not header.startswith(b"\\x89PNG\\r\\n\\x1a\\n"):
+        return f"{label} is not a valid PNG image."
+    if extension == "webp" and not (
+        header.startswith(b"RIFF") and header[8:12] == b"WEBP"
+    ):
+        return f"{label} is not a valid WebP image."
+    if extension == "pdf" and not header.startswith(b"%PDF-"):
+        return f"{label} is not a valid PDF file."
+
+    return None
+
+
+def save_file(file, folder, allowed):
+    if file and file.filename:
+        if allowed_file(file.filename, allowed):
+            filename = secure_filename(file.filename)
+            unique_name = str(uuid.uuid4())[:8] + "_" + filename
+            path = os.path.join(folder, unique_name)
+            file.save(path)
+            return unique_name
+    return None
+
+
+
+def symbol_already_used(uploaded_file, exclude_candidate_id=None):
+    """Return True if the uploaded symbol matches another candidate's symbol."""
+    if not uploaded_file or not uploaded_file.filename:
+        return False
+
+    uploaded_file.stream.seek(0)
+    uploaded_hash = hashlib.sha256(uploaded_file.stream.read()).hexdigest()
+    uploaded_file.stream.seek(0)
+
+    cur = mysql.connection.cursor()
+    try:
+        cur.execute(
+            "SELECT candidate_id, symbol FROM candidates "
+            "WHERE symbol IS NOT NULL AND symbol <> %s",
+            ("",)
+        )
+        rows = cur.fetchall()
+    finally:
+        cur.close()
+
+    for row in rows:
+        if isinstance(row, dict):
+            other_id = row.get("candidate_id")
+            stored_symbol = row.get("symbol")
+        else:
+            other_id, stored_symbol = row[0], row[1]
+
+        if exclude_candidate_id is not None and other_id == exclude_candidate_id:
+            continue
+        if not stored_symbol:
+            continue
+
+        stored_path = os.path.join(PHOTO_FOLDER, stored_symbol)
+        if not os.path.isfile(stored_path):
+            continue
+
+        try:
+            with open(stored_path, "rb") as existing_file:
+                existing_hash = hashlib.sha256(existing_file.read()).hexdigest()
+            if uploaded_hash == existing_hash:
+                return True
+        except OSError:
+            continue
+
+    return False
+
+
+def archived_symbol_conflicts(candidate_id):
+    """Check whether an archived candidate's symbol is used by an active candidate."""
+    cur = mysql.connection.cursor()
+    try:
+        cur.execute(
+            "SELECT symbol FROM candidates WHERE candidate_id=%s AND is_deleted=1",
+            (candidate_id,)
+        )
+        row = cur.fetchone()
+        if not row:
+            return False
+
+        archived_symbol = row.get("symbol") if isinstance(row, dict) else row[0]
+        if not archived_symbol:
+            return False
+
+        archived_path = os.path.join(PHOTO_FOLDER, archived_symbol)
+        if not os.path.isfile(archived_path):
+            return False
+
+        with open(archived_path, "rb") as f:
+            archived_hash = hashlib.sha256(f.read()).hexdigest()
+
+        cur.execute(
+            "SELECT candidate_id, symbol FROM candidates "
+            "WHERE is_deleted=0 AND symbol IS NOT NULL AND symbol<>'' "
+            "AND candidate_id<>%s",
+            (candidate_id,)
+        )
+        rows = cur.fetchall()
+
+        for item in rows:
+            symbol = item.get("symbol") if isinstance(item, dict) else item[1]
+            if not symbol:
+                continue
+            path = os.path.join(PHOTO_FOLDER, symbol)
+            if not os.path.isfile(path):
+                continue
+            try:
+                with open(path, "rb") as f:
+                    if hashlib.sha256(f.read()).hexdigest() == archived_hash:
+                        return True
+            except OSError:
+                continue
+        return False
+    finally:
+        cur.close()
+
+@candidate_bp.route("/")
+@admin_required
+def candidates():
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT * FROM candidates WHERE is_deleted = 0 ORDER BY candidate_id DESC")
+    candidates = cur.fetchall()
+    cur.close()
+    return render_template("admin/candidates.html", candidates=candidates)
+
+@candidate_bp.route("/add", methods=["POST"])
+@admin_required
+def add_candidate():
+    full_name = request.form.get("full_name", "")
+    party_name = request.form.get("party_name", "")
+    description = request.form.get("description", "")
+
+    fields, error = validate_candidate_fields(full_name, party_name, description)
+    if error:
+        flash(error, "danger")
+        return redirect(url_for("candidate.candidates"))
+
+    full_name, party_name, description = fields
+
+    upload_checks = [
+        (request.files.get("photo"), ALLOWED_IMAGE, "Candidate photo", 5 * 1024 * 1024),
+        (request.files.get("symbol"), ALLOWED_IMAGE, "Party symbol", 5 * 1024 * 1024),
+        (request.files.get("manifesto_file"), ALLOWED_PDF, "Manifesto PDF", 10 * 1024 * 1024),
+    ]
+    for uploaded_file, allowed, label, limit in upload_checks:
+        error = validate_upload_content(uploaded_file, allowed, label, limit)
+        if error:
+            flash(error, "danger")
+            return redirect(url_for("candidate.candidates"))
+
+    symbol_upload = request.files.get("symbol")
+    if symbol_already_used(symbol_upload):
+        flash("This party symbol is already assigned to another candidate.", "danger")
+        return redirect(url_for("candidate.candidates"))
+
+    photo = save_file(request.files.get("photo"), PHOTO_FOLDER, ALLOWED_IMAGE)
+    symbol = save_file(request.files.get("symbol"), PHOTO_FOLDER, ALLOWED_IMAGE)
+    manifesto_file = save_file(request.files.get("manifesto_file"), MANIFESTO_FOLDER, ALLOWED_PDF)
+
+    if not full_name:
+        flash("Candidate name is required.", "danger")
+        return redirect(url_for("candidate.candidates"))
+
+    cur = mysql.connection.cursor()
+    cur.execute("""
+        INSERT INTO candidates 
+        (full_name, party_name, photo, symbol, manifesto_file, description)
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """, (full_name, party_name, photo, symbol, manifesto_file, description))
+    mysql.connection.commit()
+    cur.close()
+
+    flash("Candidate added successfully.", "success")
+    return redirect(url_for("candidate.candidates"))
+
+@candidate_bp.route("/edit/<int:candidate_id>", methods=["POST"])
+@admin_required
+def edit_candidate(candidate_id):
+    full_name = request.form.get("full_name", "")
+    party_name = request.form.get("party_name", "")
+    description = request.form.get("description", "")
+
+    fields, error = validate_candidate_fields(full_name, party_name, description)
+    if error:
+        flash(error, "danger")
+        return redirect(url_for("candidate.candidates"))
+
+    full_name, party_name, description = fields
+
+    upload_checks = [
+        (request.files.get("photo"), ALLOWED_IMAGE, "Candidate photo", 5 * 1024 * 1024),
+        (request.files.get("symbol"), ALLOWED_IMAGE, "Party symbol", 5 * 1024 * 1024),
+        (request.files.get("manifesto_file"), ALLOWED_PDF, "Manifesto PDF", 10 * 1024 * 1024),
+    ]
+    for uploaded_file, allowed, label, limit in upload_checks:
+        error = validate_upload_content(uploaded_file, allowed, label, limit)
+        if error:
+            flash(error, "danger")
+            return redirect(url_for("candidate.candidates"))
+
+    symbol_upload = request.files.get("symbol")
+    if symbol_already_used(symbol_upload, exclude_candidate_id=candidate_id):
+        flash("This party symbol is already assigned to another candidate.", "danger")
+        return redirect(url_for("candidate.candidates"))
+
+    photo = save_file(request.files.get("photo"), PHOTO_FOLDER, ALLOWED_IMAGE)
+    symbol = save_file(request.files.get("symbol"), PHOTO_FOLDER, ALLOWED_IMAGE)
+    manifesto_file = save_file(request.files.get("manifesto_file"), MANIFESTO_FOLDER, ALLOWED_PDF)
+
+    cur = mysql.connection.cursor()
+
+    if photo:
+        cur.execute("UPDATE candidates SET photo=%s WHERE candidate_id=%s", (photo, candidate_id))
+
+    if symbol:
+        cur.execute("UPDATE candidates SET symbol=%s WHERE candidate_id=%s", (symbol, candidate_id))
+
+    if manifesto_file:
+        cur.execute("UPDATE candidates SET manifesto_file=%s WHERE candidate_id=%s", (manifesto_file, candidate_id))
+
+    cur.execute("""
+        UPDATE candidates
+        SET full_name=%s, party_name=%s, description=%s
+        WHERE candidate_id=%s
+    """, (full_name, party_name, description, candidate_id))
+
+    mysql.connection.commit()
+    cur.close()
+
+    flash("Candidate updated successfully.", "success")
+    return redirect(url_for("candidate.candidates"))
+
+
+@candidate_bp.route("/delete/<int:candidate_id>", methods=["POST"])
+@admin_required
+def delete_candidate(candidate_id):
+    cur = mysql.connection.cursor()
+    try:
+        cur.execute(
+            "UPDATE candidates SET is_deleted=1, deleted_at=NOW() "
+            "WHERE candidate_id=%s AND is_deleted=0",
+            (candidate_id,)
+        )
+        changed = cur.rowcount
+        mysql.connection.commit()
+    except Exception:
+        mysql.connection.rollback()
+        raise
+    finally:
+        cur.close()
+
+    if changed:
+        flash("Candidate moved to Deleted Candidates. Existing votes are preserved.", "success")
+    else:
+        flash("Candidate was not found or is already archived.", "warning")
+    return redirect(url_for("candidate.candidates"))
+
+
+@candidate_bp.route("/deleted")
+@admin_required
+def deleted_candidates():
+    cur = mysql.connection.cursor()
+    try:
+        cur.execute(
+            "SELECT * FROM candidates WHERE is_deleted=1 "
+            "ORDER BY deleted_at DESC, candidate_id DESC"
+        )
+        candidates = cur.fetchall()
+    finally:
+        cur.close()
+    return render_template("admin/deleted_candidates.html", candidates=candidates)
+
+
+@candidate_bp.route("/restore/<int:candidate_id>", methods=["POST"])
+@admin_required
+def restore_candidate(candidate_id):
+    cur = mysql.connection.cursor()
+    try:
+        cur.execute(
+            "SELECT candidate_id FROM candidates "
+            "WHERE candidate_id=%s AND is_deleted=1",
+            (candidate_id,)
+        )
+        archived = cur.fetchone()
+    finally:
+        cur.close()
+
+    if not archived:
+        flash("Archived candidate not found.", "warning")
+        return redirect(url_for("candidate.deleted_candidates"))
+
+    if archived_symbol_conflicts(candidate_id):
+        flash(
+            "Cannot restore: this party symbol is already assigned to an active candidate. "
+            "Edit the symbol conflict first.",
+            "danger"
+        )
+        return redirect(url_for("candidate.deleted_candidates"))
+
+    cur = mysql.connection.cursor()
+    try:
+        cur.execute(
+            "UPDATE candidates SET is_deleted=0, deleted_at=NULL "
+            "WHERE candidate_id=%s AND is_deleted=1",
+            (candidate_id,)
+        )
+        changed = cur.rowcount
+        mysql.connection.commit()
+    except Exception:
+        mysql.connection.rollback()
+        raise
+    finally:
+        cur.close()
+
+    if changed:
+        flash("Candidate restored successfully.", "success")
+    else:
+        flash("Candidate could not be restored.", "warning")
+    return redirect(url_for("candidate.deleted_candidates"))
+
+
+@candidate_bp.route("/permanent-delete/<int:candidate_id>", methods=["POST"])
+@admin_required
+def permanent_delete_candidate(candidate_id):
+    cur = mysql.connection.cursor()
+    try:
+        cur.execute(
+            "SELECT candidate_id FROM candidates "
+            "WHERE candidate_id=%s AND is_deleted=1",
+            (candidate_id,)
+        )
+        archived = cur.fetchone()
+
+        if not archived:
+            flash("Archived candidate not found.", "warning")
+            return redirect(url_for("candidate.deleted_candidates"))
+
+        # Never delete a candidate if any vote references them.
+        cur.execute(
+            "SELECT COUNT(*) FROM votes WHERE candidate_id=%s",
+            (candidate_id,)
+        )
+        row = cur.fetchone()
+        vote_count = row.get("COUNT(*)", 0) if isinstance(row, dict) else row[0]
+
+        if vote_count:
+            flash(
+                "Permanent deletion blocked: this candidate has vote records. "
+                "The candidate remains archived to protect election history.",
+                "danger"
+            )
+            return redirect(url_for("candidate.deleted_candidates"))
+
+        # Keep election assignment history intact as well.
+        cur.execute(
+            "SELECT COUNT(*) FROM election_candidates WHERE candidate_id=%s",
+            (candidate_id,)
+        )
+        row = cur.fetchone()
+        assignment_count = row.get("COUNT(*)", 0) if isinstance(row, dict) else row[0]
+
+        if assignment_count:
+            flash(
+                "Permanent deletion blocked: this candidate is linked to election assignments. "
+                "The candidate remains archived.",
+                "danger"
+            )
+            return redirect(url_for("candidate.deleted_candidates"))
+
+        # Only remove the row if neither votes nor assignments reference it.
+        cur.execute(
+            "DELETE FROM candidates WHERE candidate_id=%s AND is_deleted=1",
+            (candidate_id,)
+        )
+        deleted = cur.rowcount
+        mysql.connection.commit()
+
+        if deleted:
+            flash("Candidate permanently deleted.", "success")
+        else:
+            flash("Candidate was not deleted.", "warning")
+    except Exception:
+        mysql.connection.rollback()
+        raise
+    finally:
+        cur.close()
+
+    return redirect(url_for("candidate.deleted_candidates"))

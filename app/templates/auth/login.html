@@ -16,19 +16,19 @@
 
         <form method="POST" class="premium-form" id="loginForm" novalidate>
             <div class="input-wrap">
-                <label>Email Address</label>
+                <label>Student ID</label>
                 <div class="input-icon">
                     <i class="bi bi-envelope"></i>
-                    <input type="email" name="email" id="loginEmail" placeholder="Enter your email" required>
+                    <input type="text" name="student_id" id="loginStudentId" placeholder="Enter your Student ID" maxlength="30" autocomplete="username" required>
                 </div>
-                <small class="field-error" id="loginEmailError"></small>
+                <small class="field-error" id="loginStudentIdError"></small>
             </div>
 
             <div class="input-wrap">
                 <label>Password</label>
                 <div class="input-icon password-field">
                     <i class="bi bi-lock"></i>
-                    <input type="password" name="password" id="loginPassword" placeholder="Enter your password" required>
+                    <input type="password" name="password" id="loginPassword" placeholder="Enter your password" autocomplete="current-password" required>
                     <button type="button" class="password-toggle" data-target="loginPassword">
                         <i class="bi bi-eye-fill"></i>
                     </button>
@@ -48,4 +48,51 @@
         </p>
     </div>
 </section>
+<script id="loginInlineValidation">
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("loginForm");
+    const student = document.getElementById("loginStudentId");
+    const password = document.getElementById("loginPassword");
+    const studentError = document.getElementById("loginStudentIdError");
+    const passwordError = document.getElementById("loginPasswordError");
+
+    if (!form || !student || !password) return;
+
+    function checkStudent() {
+        const value = student.value.trim();
+        let message = "";
+        if (!value) message = "Student ID is required.";
+        else if (value.length > 30 || !/^[A-Za-z0-9_-]+$/.test(value))
+            message = "Use only letters, numbers, hyphens, or underscores.";
+        studentError.textContent = message;
+        studentError.style.display = message ? "block" : "none";
+        studentError.style.color = "#dc2626";
+        student.setAttribute("aria-invalid", message ? "true" : "false");
+        return !message;
+    }
+
+    function checkPassword() {
+        const message = password.value ? "" : "Password is required.";
+        passwordError.textContent = message;
+        passwordError.style.display = message ? "block" : "none";
+        passwordError.style.color = "#dc2626";
+        password.setAttribute("aria-invalid", message ? "true" : "false");
+        return !message;
+    }
+
+    student.addEventListener("input", checkStudent);
+    student.addEventListener("blur", checkStudent);
+    password.addEventListener("input", checkPassword);
+    password.addEventListener("blur", checkPassword);
+
+    form.addEventListener("submit", function (event) {
+        if (!checkStudent() || !checkPassword()) {
+            event.preventDefault();
+        }
+    });
+});
+</script>
 {% endblock %}
+
+
+

@@ -1,0 +1,184 @@
+﻿{% extends 'base.html' %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2>Admin Dashboard</h2>
+        <p>Monitor elections, voters, candidates, and voting activity.</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-3">
+        <div class="stat-card blue">
+            <div>
+                <p>Total Voters</p>
+                <h3>{{ stats.total_voters }}</h3>
+            </div>
+            <i class="bi bi-people"></i>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="stat-card purple">
+            <div>
+                <p>Total Elections</p>
+                <h3>{{ stats.total_elections }}</h3>
+            </div>
+            <i class="bi bi-calendar-event"></i>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="stat-card green">
+            <div>
+                <p>Candidates</p>
+                <h3>{{ stats.total_candidates }}</h3>
+            </div>
+            <i class="bi bi-person-badge"></i>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="stat-card orange">
+            <div>
+                <p>Votes Cast</p>
+                <h3>{{ stats.total_votes }}</h3>
+            </div>
+            <i class="bi bi-check2-square"></i>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mt-2">
+    <div class="col-lg-8">
+        <div class="panel-card">
+            <div class="section-title">
+                <div>
+                    <h5>Quick Actions</h5>
+                    <p>Manage the main election workflow from one place.</p>
+                </div>
+            </div>
+
+            <div class="quick-actions premium-actions">
+                <a href="{{ url_for('admin.voters') }}" class="action-card blue-action">
+                    <div class="action-icon"><i class="bi bi-people-fill"></i></div>
+                    <div>
+                        <h6>Manage Voters</h6>
+                        <p>Approve, reject, or block voter accounts</p>
+                    </div>
+                    <i class="bi bi-arrow-right action-arrow"></i>
+                </a>
+
+                <a href="{{ url_for('candidate.candidates') }}" class="action-card purple-action">
+                    <div class="action-icon"><i class="bi bi-person-badge-fill"></i></div>
+                    <div>
+                        <h6>Manage Candidates</h6>
+                        <p>Add candidates, photos, symbols and manifesto</p>
+                    </div>
+                    <i class="bi bi-arrow-right action-arrow"></i>
+                </a>
+
+                <a href="{{ url_for('election.elections') }}" class="action-card green-action">
+                    <div class="action-icon"><i class="bi bi-calendar2-event-fill"></i></div>
+                    <div>
+                        <h6>Manage Elections</h6>
+                        <p>Create elections and assign candidates</p>
+                    </div>
+                    <i class="bi bi-arrow-right action-arrow"></i>
+                </a>
+
+                <a href="{{ url_for('result.results') }}" class="action-card orange-action">
+                    <div class="action-icon"><i class="bi bi-bar-chart-fill"></i></div>
+                    <div>
+                        <h6>View Results</h6>
+                        <p>Publish results and export reports</p>
+                    </div>
+                    <i class="bi bi-arrow-right action-arrow"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="panel-card warning-panel approval-card">
+            <div class="approval-icon">
+                <i class="bi bi-hourglass-split"></i>
+            </div>
+            <h5>Pending Approvals</h5>
+            <h2>{{ stats.pending_voters }}</h2>
+            <p>Voters waiting for verification.</p>
+            <a href="{{ url_for('admin.voters') }}" class="btn btn-warning btn-sm">Review Now</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+<div class="card mt-4 shadow-sm">
+    <div class="card-body">
+        <h4 class="card-title">Student ID Management</h4>
+
+        <p class="text-muted">
+            Generate a unique Student ID and give the code to the student.
+            The student will use this code during registration.
+        </p>
+
+        <form method="POST"
+              action="{{ url_for('admin.generate_student_id') }}">
+
+            <button type="submit" class="btn btn-primary">
+                Generate Student ID
+            </button>
+        </form>
+
+        <hr>
+
+        <h6>Recently Generated IDs</h6>
+
+        {% if student_id_codes %}
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Status</th>
+                            <th>Generated</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                    {% for code in student_id_codes %}
+                        <tr>
+                            <td>
+                                <strong>{{ code.student_id }}</strong>
+                            </td>
+
+                            <td>
+                                {% if code.is_used %}
+                                    <span class="badge bg-secondary">
+                                        Used
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-success">
+                                        Available
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {{ code.created_at }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-muted mb-0">
+                No Student IDs generated yet.
+            </p>
+        {% endif %}
+    </div>
+</div>
+

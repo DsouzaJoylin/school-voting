@@ -33,6 +33,8 @@
                     <input type="text"
                            name="title"
                            class="form-control"
+                           minlength="3"
+                           maxlength="100"
                            placeholder="Election Title"
                            required>
                 </div>
@@ -43,6 +45,7 @@
                     </label>
 
                     <input type="datetime-local"
+                           id="start_datetime"
                            name="start_datetime"
                            class="form-control"
                            required>
@@ -54,6 +57,7 @@
                     </label>
 
                     <input type="datetime-local"
+                           id="end_datetime"
                            name="end_datetime"
                            class="form-control"
                            required>
@@ -67,7 +71,8 @@
                     <textarea name="description"
                               class="form-control"
                               rows="3"
-                              placeholder="Election Description"></textarea>
+                              maxlength="500"
+                              placeholder="Election Description (optional, max 500 characters)"></textarea>
                 </div>
 
                 <div class="col-md-12">
@@ -224,4 +229,55 @@
         </div>
     </div>
 </div>
-{% endblock %}
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const start = document.getElementById("start_datetime");
+    const end = document.getElementById("end_datetime");
+    if (!start || !end) return;
+
+    function localValue(date) {
+        const pad = n => String(n).padStart(2, "0");
+        return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" +
+            pad(date.getDate()) + "T" + pad(date.getHours()) + ":" + pad(date.getMinutes());
+    }
+
+    function configureLimits() {
+        const now = new Date();
+        const todayEnd = new Date(now);
+        todayEnd.setHours(23, 59, 0, 0);
+
+        start.min = localValue(now);
+        start.max = localValue(todayEnd);
+        end.min = start.value || localValue(now);
+        end.max = localValue(todayEnd);
+
+        if (start.value) end.min = start.value;
+    }
+
+    start.addEventListener("change", configureLimits);
+    configureLimits();
+
+    const form = start.closest("form");
+    if (form) {
+        form.addEventListener("submit", function (event) {
+            const now = new Date();
+            const today = now.getFullYear() + "-" +
+                String(now.getMonth() + 1).padStart(2, "0") + "-" +
+                String(now.getDate()).padStart(2, "0");
+
+            if (!start.value || !end.value ||
+                start.value.slice(0, 10) !== today ||
+                end.value.slice(0, 10) !== today ||
+                new Date(start.value) < new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes()) ||
+                new Date(end.value) <= new Date(start.value)) {
+                event.preventDefault();
+                alert("Choose a future start time and a later end time for today only.");
+                return;
+            }
+        });
+    }
+});
+</script>
+\n{% endblock %}
+

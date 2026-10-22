@@ -1,4 +1,4 @@
-﻿from datetime import datetime
+from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from app.extensions import mysql
 from app.utils.decorators import admin_required
@@ -90,11 +90,30 @@ def add_election():
         )
         return redirect(url_for("election.elections"))
 
+    if len(title) < 3 or len(title) > 100:
+        flash("Election title must be between 3 and 100 characters.", "danger")
+        return redirect(url_for("election.elections"))
+
+    if len(description) > 500:
+        flash("Election description cannot exceed 500 characters.", "danger")
+        return redirect(url_for("election.elections"))
+
     try:
         start_value = datetime.fromisoformat(start_datetime)
         end_value = datetime.fromisoformat(end_datetime)
-    except ValueError:
+    except (ValueError, TypeError):
         flash("Please provide valid election timings.", "danger")
+        return redirect(url_for("election.elections"))
+
+    now = datetime.now()
+    today = now.date()
+
+    if start_value.date() != today or end_value.date() != today:
+        flash("Elections must start and end today. Tomorrow and other dates are not allowed.", "danger")
+        return redirect(url_for("election.elections"))
+
+    if start_value <= now:
+        flash("Election start time must be in the future.", "danger")
         return redirect(url_for("election.elections"))
 
     if end_value <= start_value:
@@ -156,6 +175,16 @@ def assign_candidates(election_id):
         flash("Election not found.", "danger")
         return redirect(url_for("election.elections"))
 
+    # Prevent candidate changes after an election has closed or ended.
+    if (
+        election["status"] not in ("draft", "active")
+        or election["end_datetime"] is None
+        or election["end_datetime"] <= datetime.now()
+    ):
+        cur.close()
+        flash("Candidates cannot be assigned to a closed or completed election.", "danger")
+        return redirect(url_for("election.elections"))
+
     if request.method == "POST":
         candidate_id = request.form.get(
             "candidate_id",
@@ -172,6 +201,22 @@ def assign_candidates(election_id):
                 )
             )
 
+        cur.execute("""
+            SELECT candidate_id
+            FROM candidates
+            WHERE candidate_id=%s AND is_deleted=0
+        """, (candidate_id,))
+        active_candidate = cur.fetchone()
+
+        if not active_candidate:
+            cur.close()
+            flash("That candidate is deleted or no longer available.", "warning")
+            return redirect(
+                url_for(
+                    "election.assign_candidates",
+                    election_id=election_id
+                )
+            )
         cur.execute("""
             SELECT id
             FROM election_candidates
@@ -219,6 +264,7 @@ def assign_candidates(election_id):
     cur.execute("""
         SELECT *
         FROM candidates
+        WHERE is_deleted = 0
         ORDER BY full_name ASC
     """)
     candidates = cur.fetchall()
@@ -234,7 +280,7 @@ def assign_candidates(election_id):
         FROM election_candidates ec
         INNER JOIN candidates c
             ON ec.candidate_id = c.candidate_id
-        WHERE ec.election_id=%s
+        WHERE ec.election_id=%s AND c.is_deleted=0
         ORDER BY c.full_name ASC
     """, (election_id,))
     assigned_candidates = cur.fetchall()

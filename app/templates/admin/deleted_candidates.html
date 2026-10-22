@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2>Deleted Candidates</h2>
+        <p>Restore archived candidates or permanently delete candidates with no linked election records.</p>
+    </div>
+    <a href="{{ url_for('candidate.candidates') }}" class="btn btn-outline-primary">Back to Candidates</a>
+</div>
+
+<div class="panel-card">
+    {% if candidates %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Candidate</th>
+                    <th>Party</th>
+                    <th>Deleted At</th>
+                    <th style="min-width: 260px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for candidate in candidates %}
+                <tr>
+                    <td>
+                        <strong>{{ candidate.full_name }}</strong>
+                        <div class="text-muted small">ID: {{ candidate.candidate_id }}</div>
+                    </td>
+                    <td>{{ candidate.party_name or '—' }}</td>
+                    <td>{{ candidate.deleted_at or 'Unknown' }}</td>
+                    <td>
+                        <div class="d-flex flex-wrap gap-2">
+                            <form method="POST"
+                                  action="{{ url_for('candidate.restore_candidate', candidate_id=candidate.candidate_id) }}"
+                                  onsubmit="return confirm('Restore this candidate?');">
+                                <button type="submit" class="btn btn-sm btn-success">Restore</button>
+                            </form>
+                            <form method="POST"
+                                  action="{{ url_for('candidate.permanent_delete_candidate', candidate_id=candidate.candidate_id) }}"
+                                  onsubmit="return confirm('Permanently delete this archived candidate? This cannot be undone.');">
+                                <button type="submit" class="btn btn-sm btn-danger">Permanent Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <div class="text-center text-muted py-4">No deleted candidates.</div>
+    {% endif %}
+</div>
+{% endblock %}

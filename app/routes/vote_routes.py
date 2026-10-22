@@ -37,7 +37,7 @@ def election_details(election_id):
         SELECT c.*
         FROM election_candidates ec
         JOIN candidates c ON ec.candidate_id = c.candidate_id
-        WHERE ec.election_id=%s
+        WHERE ec.election_id=%s AND c.is_deleted=0
     """, (election_id,))
     candidates = cur.fetchall()
 
